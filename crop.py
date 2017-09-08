@@ -10,6 +10,8 @@ from squares import find_squares, angle_cos
 from wand.display import display
 from wand.image import Image
 
+ERR_FILE_READ = 'Could not read %s'
+
 def remove_squares_touching_border(squares, size, border):
     """Remove squares too close to the image border."""
 
@@ -95,6 +97,9 @@ args = parser.parse_args()
 
 # read image
 img = cv2.imread(args.input, cv2.IMREAD_COLOR)
+assert img is not None, ERR_FILE_READ % args.input
+
+# find photos
 squares = find_photos(img)
 
 #cv2.drawContours( img, squares, -1, (0, 255, 0), 1 )
