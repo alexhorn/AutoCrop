@@ -91,6 +91,7 @@ logging.basicConfig(level=logging.DEBUG)
 
 parser = argparse.ArgumentParser(description='Crops out photos from a scan.')
 parser.add_argument('--input', type=str)
+parser.add_argument('--output', type=str)
 parser.add_argument('--quality', type=int)
 parser.add_argument('--force', action='store_true')
 args = parser.parse_args()
@@ -106,7 +107,7 @@ squares = find_photos(img)
 #cv2.imshow('contours', img)
 #cv2.waitKey(0)
 
-root, ext = path.splitext(args.input)
+root, ext = path.splitext(args.output)
 for square_idx, square in enumerate(squares):
     output = '%s.%d%s' % (root, square_idx, ext)
     with Image(filename=args.input) as image:
