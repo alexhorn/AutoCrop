@@ -87,6 +87,33 @@ def find_photos(img):
 
     return squares
 
+def crop(img, square):
+    """Rotate and crop a photo in a Wand image."""
+
+    # get square angle
+    angle = 90 - math.degrees(get_tilt(square))
+
+    # rotate polygon
+    logging.debug('Rotating polygon by %f°' % angle)
+    width, height = img.size
+    polygon = affinity.rotate(Polygon(square), angle, origin=(width / 2, height / 2))
+
+    # rotate image
+    logging.debug('Rotating image')
+    width_before, height_before = img.size
+    img.rotate(angle)
+    width_after, height_after = img.size
+
+    # move polygon to match resized image
+    logging.debug('Moving polygon')
+    offset_x = (width_after - width_before) / 2
+    offset_y = (height_after - height_before) / 2
+    polygon = affinity.translate(polygon, offset_x, offset_y)
+
+    # crop image
+    logging.debug('Cropping image')
+    img.crop(*map(round, polygon.bounds))
+
 logging.basicConfig(level=logging.DEBUG)
 
 parser = argparse.ArgumentParser(description='Crops out photos from a scan.')
@@ -103,41 +130,16 @@ assert img is not None, ERR_FILE_READ % args.input
 # find photos
 squares = find_photos(img)
 
-#cv2.drawContours( img, squares, -1, (0, 255, 0), 1 )
-#cv2.imshow('contours', img)
-#cv2.waitKey(0)
-
 root, ext = path.splitext(args.output)
 for square_idx, square in enumerate(squares):
     output = '%s.%d%s' % (root, square_idx, ext)
-    with Image(filename=args.input) as image:
-        # get square angle
-        correction_angle = 90 - math.degrees(get_tilt(square))
+    with Image(filename=args.input) as img:
+        # crop photo
+        crop(img, square)
 
-        # rotate polygon
-        logging.debug('Rotating polygon by %f°' % correction_angle)
-        height, width = img.shape[:2]
-        corrected_polygon = affinity.rotate(Polygon(square), correction_angle, origin=(width / 2, height / 2))
-
-        # rotate image
-        logging.debug('Rotating image')
-        width_before, height_before = image.size
-        image.rotate(correction_angle)
-        width_after, height_after = image.size
-
-        # offset polygon to match image
-        logging.debug('Moving polygon')
-        offset_x = (width_after - width_before) / 2
-        offset_y = (height_after - height_before) / 2
-        corrected_polygon = affinity.translate(corrected_polygon, offset_x, offset_y)
-
-        # crop image
-        logging.debug('Cropping image')
-        image.crop(*map(round, corrected_polygon.bounds))
-
-        # save image
+        # save photo
         logging.info('Saving %s' % output)
         assert args.force or not path.isfile(output), 'File exists already'
         if args.quality:
-            image.compression_quality=args.quality
-        image.save(filename=output)
+            img.compression_quality=args.quality
+        img.save(filename=output)
